@@ -2,32 +2,12 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>贪吃蛇 - 弹窗确认版</title>
+<title>贪吃蛇 - 退出网页确认版</title>
 <style>
-body {
-  margin: 0;
-  background: #222;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-family: Arial, sans-serif;
-  user-select: none;
-}
-canvas {
-  border: 2px solid #fff;
-  margin-top: 20px;
-  touch-action: none;
-}
-.controls {
-  margin-top: 10px;
-}
-button {
-  width: 60px;
-  height: 40px;
-  margin: 5px;
-  font-size: 16px;
-}
+body { margin:0; background:#222; color:#fff; display:flex; flex-direction:column; align-items:center; font-family:Arial, sans-serif; user-select:none;}
+canvas { border:2px solid #fff; margin-top:20px; touch-action:none;}
+.controls { margin-top:10px;}
+button { width:100px; height:40px; margin:5px; font-size:16px;}
 </style>
 </head>
 <body>
@@ -39,154 +19,110 @@ button {
   <button onclick="setDir('DOWN')">⬇</button>
   <button onclick="setDir('RIGHT')">➡</button>
   <button onclick="restartGame()">重新开始</button>
+  <button onclick="exitGame()">退出游戏</button>
 </div>
 
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-const box = 15;
-const cols = canvas.width / box;
-const rows = canvas.height / box;
-
-let snake, direction, nextDirection, food, score;
-let moveInterval = 200; // 蛇移动速度(ms)
-let lastMoveTime = 0;
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+const box=15, cols=canvas.width/box, rows=canvas.height/box;
+let snake,direction,nextDirection,food,score;
+let moveInterval=200,lastMoveTime=0,gameOver=false;
 
 // 初始化游戏
-function initGame() {
-  snake = [{x:5, y:5}];
-  direction = "RIGHT";
-  nextDirection = "RIGHT";
-  score = 0;
+function initGame(){
+  snake=[{x:5,y:5}];
+  direction="RIGHT"; nextDirection="RIGHT";
+  score=0; gameOver=false;
   generateFood();
 }
 
-// 生成食物（不会出现在蛇身上）
-function generateFood() {
+// 生成食物
+function generateFood(){
   let newFood;
-  do {
-    newFood = {
-      x: Math.floor(Math.random()*cols),
-      y: Math.floor(Math.random()*rows)
-    };
-  } while (snake.some(seg => seg.x===newFood.x && seg.y===newFood.y));
-  food = newFood;
+  do{
+    newFood={x:Math.floor(Math.random()*cols), y:Math.floor(Math.random()*rows)};
+  }while(snake.some(seg=>seg.x===newFood.x && seg.y===newFood.y));
+  food=newFood;
 }
-
 initGame();
 
-// 按键控制（方向缓冲）
-document.addEventListener("keydown", e=>{
-  switch(e.key){
-    case "ArrowLeft": if(direction!=="RIGHT") nextDirection="LEFT"; break;
-    case "ArrowUp": if(direction!=="DOWN") nextDirection="UP"; break;
-    case "ArrowRight": if(direction!=="LEFT") nextDirection="RIGHT"; break;
-    case "ArrowDown": if(direction!=="UP") nextDirection="DOWN"; break;
-  }
+// 键盘控制
+document.addEventListener("keydown",e=>{
+  if(gameOver) return;
+  if(e.key==="ArrowLeft" && direction!=="RIGHT") nextDirection="LEFT";
+  else if(e.key==="ArrowUp" && direction!=="DOWN") nextDirection="UP";
+  else if(e.key==="ArrowRight" && direction!=="LEFT") nextDirection="RIGHT";
+  else if(e.key==="ArrowDown" && direction!=="UP") nextDirection="DOWN";
 });
 
 // 按钮控制
-function setDir(dir){
+function setDir(dir){ if(gameOver) return;
   if(dir==="LEFT" && direction!=="RIGHT") nextDirection="LEFT";
   else if(dir==="UP" && direction!=="DOWN") nextDirection="UP";
   else if(dir==="RIGHT" && direction!=="LEFT") nextDirection="RIGHT";
   else if(dir==="DOWN" && direction!=="UP") nextDirection="DOWN";
 }
 
-// 手机滑动控制
-let touchStartX=0, touchStartY=0;
-canvas.addEventListener("touchstart", e=>{
-  const t = e.touches[0];
-  touchStartX = t.clientX;
-  touchStartY = t.clientY;
-});
-canvas.addEventListener("touchmove", e=>{
-  e.preventDefault();
-  const t = e.touches[0];
-  const dx = t.clientX - touchStartX;
-  const dy = t.clientY - touchStartY;
-  if(Math.abs(dx)>Math.abs(dy)){
-    if(dx>0) setDir("RIGHT"); else setDir("LEFT");
-  } else {
-    if(dy>0) setDir("DOWN"); else setDir("UP");
-  }
-  touchStartX = t.clientX;
-  touchStartY = t.clientY;
-}, {passive:false});
+// 手势控制
+let touchStartX=0,touchStartY=0;
+canvas.addEventListener("touchstart",e=>{ const t=e.touches[0]; touchStartX=t.clientX; touchStartY=t.clientY; });
+canvas.addEventListener("touchmove",e=>{
+  e.preventDefault(); if(gameOver) return;
+  const t=e.touches[0]; const dx=t.clientX-touchStartX, dy=t.clientY-touchStartY;
+  if(Math.abs(dx)>Math.abs(dy)){ if(dx>0 && direction!=="LEFT") nextDirection="RIGHT"; else if(dx<0 && direction!=="RIGHT") nextDirection="LEFT"; }
+  else{ if(dy>0 && direction!=="UP") nextDirection="DOWN"; else if(dy<0 && direction!=="DOWN") nextDirection="UP"; }
+  touchStartX=t.clientX; touchStartY=t.clientY;
+},{passive:false});
 
-// 重新开始按钮
-function restartGame(){
-  if(confirm("是否重新开始游戏？")){
-    initGame();
+// 重新开始
+function restartGame(){ if(confirm("是否重新开始游戏？")) initGame(); }
+
+// 退出游戏按钮（确认退出网页）
+function exitGame(){
+  if(confirm("是否确认退出网页？")){
+    gameOver=true;
+    // 尝试关闭网页
+    window.open('', '_self'); 
+    window.close(); 
+    // 如果浏览器限制关闭，提示用户手动关闭
+    setTimeout(()=>{ alert("如果页面未关闭，请手动返回或关闭浏览器标签页"); }, 100);
   }
 }
 
-// 更新蛇位置
+// 更新蛇
 function updateSnake(){
-  direction = nextDirection;
-  let headX = snake[0].x;
-  let headY = snake[0].y;
+  if(gameOver) return;
+  direction=nextDirection;
+  let headX=snake[0].x, headY=snake[0].y;
+  switch(direction){ case "LEFT": headX--; break; case "UP": headY--; break; case "RIGHT": headX++; break; case "DOWN": headY++; break; }
+  const newHead={x:headX,y:headY};
 
-  switch(direction){
-    case "LEFT": headX--; break;
-    case "UP": headY--; break;
-    case "RIGHT": headX++; break;
-    case "DOWN": headY++; break;
-  }
-
-  const newHead = {x:headX, y:headY};
-
-  // 撞墙或撞自己 → 弹窗提示分数 + 是否重新开始
-  if(headX<0 || headY<0 || headX>=cols || headY>=rows ||
-     snake.some(seg=>seg.x===newHead.x && seg.y===newHead.y)){
-    alert("游戏结束！得分: "+score);
-    if(confirm("是否重新开始游戏？")){
-      initGame();
-    }
+  if(headX<0||headY<0||headX>=cols||headY>=rows||snake.some(seg=>seg.x===newHead.x&&seg.y===newHead.y)){
+    alert("游戏结束！得分:"+score);
+    gameOver=true;
+    if(confirm("是否重新开始？")) initGame();
     return;
   }
 
   snake.unshift(newHead);
-
-  // 吃到食物
-  if(headX===food.x && headY===food.y){
-    score++;
-    generateFood();
-  } else {
-    snake.pop();
-  }
+  if(headX===food.x&&headY===food.y) score++,generateFood();
+  else snake.pop();
 }
 
 // 绘制游戏
 function draw(){
-  ctx.fillStyle="#000";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // 画蛇
-  for(let i=0;i<snake.length;i++){
-    ctx.fillStyle=i===0?"lime":"green";
-    ctx.fillRect(snake[i].x*box, snake[i].y*box, box, box);
-  }
-
-  // 画食物
-  ctx.fillStyle="red";
-  ctx.fillRect(food.x*box, food.y*box, box, box);
-
-  // 分数
-  ctx.fillStyle="#fff";
-  ctx.font="16px Arial";
-  ctx.fillText("分数: "+score,10,canvas.height-10);
+  ctx.fillStyle="#000"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<snake.length;i++){ ctx.fillStyle=i===0?"lime":"green"; ctx.fillRect(snake[i].x*box,snake[i].y*box,box,box);}
+  ctx.fillStyle="red"; ctx.fillRect(food.x*box,food.y*box,box,box);
+  ctx.fillStyle="#fff"; ctx.font="16px Arial"; ctx.fillText("分数:"+score,10,canvas.height-10);
 }
 
 // 游戏循环
-function gameLoop(timestamp){
-  if(!lastMoveTime) lastMoveTime=timestamp;
-  if(timestamp - lastMoveTime > moveInterval){
-    updateSnake();
-    lastMoveTime=timestamp;
-  }
-  draw();
-  requestAnimationFrame(gameLoop);
+function gameLoop(ts){
+  if(!lastMoveTime) lastMoveTime=ts;
+  if(ts-lastMoveTime>moveInterval){ updateSnake(); lastMoveTime=ts; }
+  draw(); requestAnimationFrame(gameLoop);
 }
 
 requestAnimationFrame(gameLoop);
